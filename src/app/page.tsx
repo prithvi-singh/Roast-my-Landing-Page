@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Link, AlertCircle, CheckCircle2, Loader2, Send } from "lucide-react";
+import { Copy, Link, AlertCircle, CheckCircle2, Loader2, Send, Flame, XCircle } from "lucide-react";
 
 export default function Home() {
   const [mode, setMode] = useState<"url" | "paste">("url");
@@ -21,9 +21,9 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode, // "url" or "paste"
+          mode,
           url: mode === "url" ? url : "", 
-          text: mode === "paste" ? text : "", // Explicitly sends text only in paste mode
+          text: mode === "paste" ? text : "",
         }),
       });
 
@@ -43,7 +43,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-black text-gray-200 font-mono p-4 flex flex-col items-center justify-center">
-      <div className="max-w-2xl w-full space-y-8">
+      <div className="max-w-3xl w-full space-y-8">
         
         {/* Header */}
         <div className="text-center space-y-4">
@@ -53,7 +53,7 @@ export default function Home() {
           <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-white">
             ROAST MY LANDING PAGE
           </h1>
-          <p className="text-gray-500">
+          <p className="text-gray-500 text-lg">
             Get a brutal, honest critique from a cynical VC AI. <br />
             Prepare to cry.
           </p>
@@ -62,7 +62,6 @@ export default function Home() {
         {/* Input Card */}
         <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-2 md:p-6 backdrop-blur-sm">
           
-          {/* Tabs */}
           <div className="grid grid-cols-2 gap-2 mb-6 bg-black/40 p-1 rounded-lg">
             <button
               onClick={() => setMode("url")}
@@ -86,7 +85,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Inputs */}
           <div className="space-y-4">
             {mode === "url" ? (
               <input
@@ -111,7 +109,7 @@ export default function Home() {
               disabled={loading || (mode === "url" ? !url : !text)}
               className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)]"
             >
-              {loading ? <Loader2 className="animate-spin" /> : <Send size={18} />}
+              {loading ? <Loader2 className="animate-spin" /> : <Flame size={18} />}
               {loading ? "Roasting..." : "Roast Me →"}
             </button>
           </div>
@@ -137,37 +135,62 @@ export default function Home() {
               </div>
             </div>
 
-            {/* The Roast */}
+            {/* The Main Roast */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 md:p-8">
               <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <span className="text-2xl">🔥</span> The Roast
+                <span className="text-2xl">💀</span> The Verdict
               </h3>
-              <p className="text-lg text-gray-300 leading-relaxed border-l-4 border-indigo-500 pl-4">
+              <p className="text-xl md:text-2xl text-gray-200 font-bold leading-relaxed">
                 "{result.roast}"
               </p>
             </div>
 
-            {/* The Fixes */}
-            <div className="grid gap-4">
+            {/* The Detailed Fixes (Redesigned) */}
+            <div className="grid gap-6">
               {result.fixes.map((fix: any, i: number) => (
-                <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-indigo-500/30 transition-colors">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-indigo-900/30 text-indigo-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mt-1">
-                      {i + 1}
+                <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                  
+                  {/* The Problem (Red Section) */}
+                  <div className="bg-red-950/20 border-b border-red-900/20 p-5 flex gap-4">
+                    <div className="bg-red-900/30 text-red-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">
+                      <XCircle size={18} />
                     </div>
-                    <div className="space-y-3 w-full">
-                      <div className="bg-red-950/30 text-red-300/80 px-3 py-2 rounded-md text-sm font-mono border border-red-900/30 strike-through line-through opacity-70">
-                        {fix.problem}
-                      </div>
-                      <div className="flex items-start gap-2 text-green-400 text-sm font-medium bg-green-900/10 p-2 rounded">
-                        <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
-                        {fix.solution}
-                      </div>
+                    <div>
+                      <h4 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-1">The Roast</h4>
+                      <p className="text-red-200 font-medium italic">
+                        "{fix.problem}"
+                      </p>
                     </div>
                   </div>
+
+                  {/* The Solution (Green Section) */}
+                  <div className="bg-green-950/10 p-5 flex gap-4">
+                     <div className="bg-green-900/30 text-green-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">
+                      <CheckCircle2 size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-green-400 text-xs font-bold uppercase tracking-wider mb-1">The Fix</h4>
+                      <p className="text-green-100/90 leading-relaxed">
+                        {fix.solution}
+                      </p>
+                    </div>
+                  </div>
+
                 </div>
               ))}
             </div>
+
+            {/* Share Button */}
+             <div className="flex justify-center pt-8 pb-12">
+               <a 
+                 href={`https://twitter.com/intent/tweet?text=I%20just%20got%20roasted%20by%20AI.%20My%20site%20scored%20${result.score}/100.%20%F0%9F%92%80%20"${result.roast}"&url=https://roastmylandingpage.com`}
+                 target="_blank"
+                 className="bg-white text-black font-bold py-3 px-6 rounded-full hover:scale-105 transition-transform flex items-center gap-2"
+               >
+                 Share this disaster on Twitter
+               </a>
+             </div>
+
           </div>
         )}
       </div>
