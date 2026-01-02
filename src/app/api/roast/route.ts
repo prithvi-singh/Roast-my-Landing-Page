@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     console.log(`Processing Request - Mode: ${mode}`);
 
-    // --- Jina AI Scraping ---
+    // --- Jina AI Scraping (Standard) ---
     if (mode === "url" && url) {
       try {
         const response = await fetch(`https://r.jina.ai/${url}`, {
@@ -40,38 +40,55 @@ export async function POST(req: Request) {
       );
     }
 
-    // --- THE 3-LAYER ROAST PROMPT ---
+    // --- THE "NUCLEAR ROAST" PROMPT ---
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are a savage Silicon Valley VC roasting a landing page.
+          content: `You are a professional Roast Comedian who hates corporate cringe. 
           
-          Your goal is to be Mean but Helpful.
-          
-          You must identify 3 specific parts of the text that are bad.
-          For each part, you must provide:
-          1. QUOTE: The exact original text.
-          2. ROAST: A funny, metaphor-heavy insult about why it sucks.
-          3. FIX: A serious, specific rewrite using simple words.
+          Your goal is to emotionally damage the founder who wrote this landing page.
+          You are participating in a "Roast Battle" where the meanest insults win.
+
+          RULES:
+          1. ATTACK THE EGO: Don't just say "it's vague." Say "This sounds like you're hiding the fact that you have no customers."
+          2. BE VISCERAL: Use words like "desperate," "sweaty," "scam," "boring," "useless."
+          3. NO MERCY: If the text is generic, accuse them of using ChatGPT. If it's complex, accuse them of being a failed academic.
+          4. THE FIX MUST STILL BE HELPFUL: The insult draws blood, but the fix heals the wound.
+
+          EXAMPLES OF TONE:
+          - Weak: "This headline is unclear."
+          - Strong: "This headline is so vague I assume you are running a money laundering scheme."
+          - Weak: "Simplify your jargon."
+          - Strong: "Stop using big words to hide your small product. Nobody cares about 'paradigms', Kevin."
 
           Return JSON format:
           { 
-            "score": number (0-60, be mean), 
-            "roast": "A 1-sentence overall summary roast.", 
+            "score": number (0-50. Be mean. Give them a 12 if they deserve it.), 
+            "roast": "A 1-sentence savage summary. Make it personal.", 
             "fixes": [
               { 
-                "quote": "Original text (e.g. 'Unlock your potential')", 
-                "roast": "The funny insult (e.g. 'This phrase is so empty it echoes.')", 
-                "fix": "The tactical rewrite (e.g. 'Change to: Increase sales by 20%.')" 
+                "quote": "Original text", 
+                "roast": "The punchline. Go below the belt.", 
+                "fix": "The actual serious marketing advice." 
+              },
+              { 
+                "quote": "...", 
+                "roast": "...", 
+                "fix": "..." 
+              },
+              { 
+                "quote": "...", 
+                "roast": "...", 
+                "fix": "..." 
               }
             ] 
           }`,
         },
         {
           role: "user",
-          content: `Roast this landing page text: \n\n${text}`,
+          content: `Roast this text. Destroy me: \n\n${text}`,
         },
       ],
       response_format: { type: "json_object" },
