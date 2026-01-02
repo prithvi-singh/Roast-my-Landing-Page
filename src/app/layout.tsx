@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css"; // This is crucial for Tailwind to work
+import { Inter } from "next/font/google"; // Switched from Geist to Inter
+import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Roast My Landing Page",
-  description: "Get a brutal critique of your startup.",
+  description: "AI-powered brutal feedback for your startup.",
 };
 
 export default function RootLayout({
@@ -16,12 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* We add 'bg-zinc-950' here to ensure the whole page 
-        background is dark by default, preventing white flashes.
-      */}
-      <body className={`${inter.className} bg-zinc-950 text-zinc-100`}>
-        {children}
-      </body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
