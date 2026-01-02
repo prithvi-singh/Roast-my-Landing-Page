@@ -1,122 +1,77 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { scrapeLandingPage } from "@/lib/scraper";
+import * as cheerio from "cheerio";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// System Prompt
-const SYSTEM_PROMPT = `You are a legendary tech product critic known for being brutally honest but incredibly insightful (like Gordon Ramsay for landing pages).
-
-Your goal is to analyze the provided landing page text and Output a JSON object.
-
-### INSTRUCTIONS:
-1. SCORE: Give a harsh score from 0-100. Be stingy. High scores are only for perfection.
-2. ROAST: Write a 1-2 sentence "Devastating Summary." This should be witty, slightly mean, and attack the lack of clarity or overuse of jargon. Make it hurt a little.
-3. ADVICE: Provide 3 "Tactical Fixes."
-   - CRITICAL RULE: Do not give general advice like "Improve clarity."
-   - You MUST quote the specific bad text and provide a specific rewrite or deletion.
-   - Example: "Change 'Synergizing global paradigms' to 'We sell shoes'."
-
-### OUTPUT FORMAT (JSON ONLY):
-{
-  "score": number,
-  "roast": "string",
-  "fixes": [
-    { "problem": "string", "solution": "string" },
-    { "problem": "string", "solution": "string" },
-    { "problem": "string", "solution": "string" }
-  ]
-}`;
+// 1. We do NOT initialize OpenAI here anymore.
+// We just import it.
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { type, content } = body;
+    // 2. Initialize it INSIDE the function (Lazy loading)
+    // This prevents the "Missing Credentials" error during build
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
-    // Validate input
-    if (!type || !content || typeof content !== "string" || !content.trim()) {
-      return NextResponse.json(
-        { error: "Missing or invalid input. Please provide both type and content." },
-        { status: 400 }
-      );
-    }
+    const { url, text, mode } = await req.json();
+    let contentToRoast = text;
 
-    if (type !== "url" && type !== "text") {
-      return NextResponse.json(
-        { error: "Invalid type. Must be 'url' or 'text'." },
-        { status: 400 }
-      );
-    }
-
-    let textToAnalyze = content;
-
-    // 1. Handle Scraping
-    if (type === "url") {
+    // Scrape if URL mode
+    if (mode === "url" && url) {
       try {
-        textToAnalyze = await scrapeLandingPage(content);
-      } catch (error: any) {
-        if (error.message === "ANTI_BOT_DETECTED") {
-          return NextResponse.json(
-            { error: "This site is protected by anti-bots. Please use the 'Paste Text' tab." },
-            { status: 422 }
-          );
-        }
+        const response = await fetch(url, {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          },
+        });
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
+        // Extract meaningful text (Headings and paragraphs)
+        contentToRoast = $("h1, h2, h3, p")
+          .map((_, el) => $(el).text())
+          .get()
+          .join(" ")
+          .slice(0, 3000); // Limit to 3000 chars to save tokens
+      } catch (error) {
         return NextResponse.json(
-          { error: "Failed to load URL. Please double-check the link or paste text manually." },
+          { error: "Failed to scrape site. Try pasting text." },
           { status: 400 }
         );
       }
     }
 
-    // 2. AI Processing
+    if (!contentToRoast || contentToRoast.length < 50) {
+      return NextResponse.json(
+        { error: "Not enough content found to roast. Paste text manually." },
+        { status: 400 }
+      );
+    }
+
+    // Call OpenAI
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `### INPUT TEXT:\n${textToAnalyze}` },
+        {
+          role: "system",
+          content: `You are a brutal VC investor roasting a landing page.
+          Return valid JSON only.
+          Format: { "score": number, "roast": "string", "fixes": [{ "problem": "string", "solution": "string" }] }`,
+        },
+        {
+          role: "user",
+          content: `Roast this content: ${contentToRoast}`,
+        },
       ],
       response_format: { type: "json_object" },
     });
 
-    const aiResponse = completion.choices[0].message.content;
-    if (!aiResponse) {
-      return NextResponse.json(
-        { error: "No response from AI." },
-        { status: 500 }
-      );
-    }
-
-    let result;
-    try {
-      result = JSON.parse(aiResponse);
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError);
-      return NextResponse.json(
-        { error: "Invalid response format from AI." },
-        { status: 500 }
-      );
-    }
-
-    // Validate result structure
-    if (
-      typeof result.score !== "number" || 
-      !result.roast || 
-      !Array.isArray(result.fixes) ||
-      result.fixes.length !== 3 ||
-      !result.fixes.every((fix: any) => fix.problem && fix.solution)
-    ) {
-      return NextResponse.json(
-        { error: "Invalid response structure from AI." },
-        { status: 500 }
-      );
-    }
-
+    const result = JSON.parse(completion.choices[0].message.content || "{}");
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error("Roast error:", error);
+    console.error(error);
     return NextResponse.json(
       { error: "Something went wrong during the roast." },
       { status: 500 }
