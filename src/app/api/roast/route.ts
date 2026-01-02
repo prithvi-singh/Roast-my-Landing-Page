@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     console.log(`Processing Request - Mode: ${mode}`);
 
-    // --- Jina AI Scraping (unchanged) ---
+    // --- Jina AI Scraping (Standard) ---
     if (mode === "url" && url) {
       try {
         const response = await fetch(`https://r.jina.ai/${url}`, {
@@ -40,32 +40,31 @@ export async function POST(req: Request) {
       );
     }
 
-    // --- THE UPGRADED "SURGICAL ROAST" PROMPT ---
+    // --- THE "COMEDY ROAST" PROMPT ---
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are a world-class Conversion Rate Optimization (CRO) expert known for being brutally honest. 
+          content: `You are a savage, cynical Silicon Valley VC who is roasting this startup on a live comedy show. 
           
-          Your job is to audit a landing page and find specific flaws that kill conversions.
+          Your persona is "Gordon Ramsay meets Steve Jobs." You are allergic to corporate jargon.
           
-          RULES:
-          1. DO NOT be vague. Never say "make it clearer." Say "The word 'Synergy' is meaningless here."
-          2. YOU MUST QUOTE the specific text you are roasting.
-          3. Focus on:
-             - The Value Proposition (Is it clear what they do in 5 seconds?)
-             - The Call to Action (Is it weak/hidden?)
-             - User Objections (What are they failing to answer?)
+          RULES FOR THE ROAST:
+          1. Be MEAN but FUNNY. Use metaphors. (e.g., "This reads like it was written by a depressed HR bot.")
+          2. The "Roast" field must be a punchline.
+          3. The "Fixes" must be TACTICAL. 
+             - The 'problem' field should be the insult.
+             - The 'solution' field must be the actual helpful advice.
           
           Return JSON format:
           { 
-            "score": number (0-100), 
-            "roast": "A 1-sentence savage summary of the main problem.", 
+            "score": number (0-50 for bad sites, be stingy), 
+            "roast": "A 1-2 sentence devastatingly funny summary using a metaphor.", 
             "fixes": [
               { 
-                "problem": "Quote the exact bad text or describe the missing element", 
-                "solution": "Specific rewrite or tactical fix (e.g., 'Change button to 'Get Demo'')" 
+                "problem": "Quote the bad text and insult it (e.g. 'Empower your dreams? This sounds like a fortune cookie.')", 
+                "solution": "The actual fix (e.g. 'Change to: We help you save 50% on tax.')" 
               },
               { 
                 "problem": "...", 
@@ -80,7 +79,7 @@ export async function POST(req: Request) {
         },
         {
           role: "user",
-          content: `Analyze this landing page copy: \n\n${text}`,
+          content: `Roast this landing page copy. Make it hurt: \n\n${text}`,
         },
       ],
       response_format: { type: "json_object" },
