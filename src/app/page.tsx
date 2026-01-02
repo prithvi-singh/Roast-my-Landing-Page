@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Link, AlertCircle, CheckCircle2, Loader2, Send, Flame, XCircle } from "lucide-react";
+import { Copy, Link, AlertCircle, CheckCircle2, Loader2, Flame, Quote, MessageSquare } from "lucide-react";
 
 export default function Home() {
   const [mode, setMode] = useState<"url" | "paste">("url");
@@ -28,11 +28,7 @@ export default function Home() {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Something went wrong");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Something went wrong");
       setResult(data);
     } catch (err: any) {
       setError(err.message);
@@ -59,16 +55,13 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Input Card */}
+        {/* Input Section */}
         <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-2 md:p-6 backdrop-blur-sm">
-          
           <div className="grid grid-cols-2 gap-2 mb-6 bg-black/40 p-1 rounded-lg">
             <button
               onClick={() => setMode("url")}
               className={`flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-md transition-all ${
-                mode === "url"
-                  ? "bg-gray-800 text-white shadow-lg"
-                  : "text-gray-500 hover:text-gray-300"
+                mode === "url" ? "bg-gray-800 text-white shadow-lg" : "text-gray-500 hover:text-gray-300"
               }`}
             >
               <Link size={16} /> URL Scraper
@@ -76,9 +69,7 @@ export default function Home() {
             <button
               onClick={() => setMode("paste")}
               className={`flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-md transition-all ${
-                mode === "paste"
-                  ? "bg-gray-800 text-white shadow-lg"
-                  : "text-gray-500 hover:text-gray-300"
+                mode === "paste" ? "bg-gray-800 text-white shadow-lg" : "text-gray-500 hover:text-gray-300"
               }`}
             >
               <Copy size={16} /> Paste Copy
@@ -92,7 +83,7 @@ export default function Home() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://your-startup.com"
-                className="w-full bg-black border border-gray-800 rounded-lg px-4 py-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                className="w-full bg-black border border-gray-800 rounded-lg px-4 py-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             ) : (
               <textarea
@@ -100,7 +91,7 @@ export default function Home() {
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Paste your H1, H2, and hero text here..."
                 rows={6}
-                className="w-full bg-black border border-gray-800 rounded-lg px-4 py-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
+                className="w-full bg-black border border-gray-800 rounded-lg px-4 py-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               />
             )}
 
@@ -124,55 +115,58 @@ export default function Home() {
 
         {/* Result Card */}
         {result && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
             
-            {/* Score Section */}
+            {/* Score */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center relative overflow-hidden">
-              <div className={`absolute top-0 left-0 w-full h-1 ${result.score > 50 ? 'bg-green-500' : 'bg-red-500'}`} />
+              <div className={`absolute top-0 left-0 w-full h-1 ${result.score > 50 ? 'bg-green-500' : 'bg-red-600'}`} />
               <div className="text-gray-500 text-sm font-bold uppercase tracking-widest mb-2">Verdict Score</div>
-              <div className={`text-7xl font-black ${result.score > 50 ? 'text-green-500' : 'text-red-500'}`}>
-                {result.score}/100
+              <div className={`text-8xl font-black ${result.score > 50 ? 'text-green-500' : 'text-red-500'}`}>
+                {result.score}
               </div>
             </div>
 
-            {/* The Main Roast */}
+            {/* Overall Summary */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 md:p-8">
               <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <span className="text-2xl">💀</span> The Verdict
+                <span className="text-2xl">🔥</span> The Verdict
               </h3>
-              <p className="text-xl md:text-2xl text-gray-200 font-bold leading-relaxed">
-                "{result.roast}"
-              </p>
+              <p className="text-xl text-gray-300 leading-relaxed italic">"{result.roast}"</p>
             </div>
 
-            {/* The Detailed Fixes (Redesigned) */}
+            {/* THE NEW 3-LAYER CARDS */}
             <div className="grid gap-6">
               {result.fixes.map((fix: any, i: number) => (
-                <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden shadow-lg">
                   
-                  {/* The Problem (Red Section) */}
-                  <div className="bg-red-950/20 border-b border-red-900/20 p-5 flex gap-4">
-                    <div className="bg-red-900/30 text-red-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">
-                      <XCircle size={18} />
-                    </div>
+                  {/* Layer 1: The Quote (Context) */}
+                  <div className="bg-gray-950/50 p-4 border-b border-gray-800 flex gap-3">
+                    <Quote size={20} className="text-gray-500 shrink-0 mt-1" />
                     <div>
-                      <h4 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-1">The Roast</h4>
-                      <p className="text-red-200 font-medium italic">
-                        "{fix.problem}"
-                      </p>
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">Original Copy</span>
+                      <p className="text-gray-300 font-mono text-sm opacity-80">"{fix.quote}"</p>
                     </div>
                   </div>
 
-                  {/* The Solution (Green Section) */}
-                  <div className="bg-green-950/10 p-5 flex gap-4">
-                     <div className="bg-green-900/30 text-green-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">
-                      <CheckCircle2 size={18} />
+                  {/* Layer 2: The Roast (Fun) */}
+                  <div className="bg-red-950/20 p-5 border-b border-red-900/10 flex gap-4">
+                    <div className="bg-red-500/10 text-red-500 p-2 rounded-lg shrink-0 h-fit">
+                      <Flame size={20} />
                     </div>
                     <div>
-                      <h4 className="text-green-400 text-xs font-bold uppercase tracking-wider mb-1">The Fix</h4>
-                      <p className="text-green-100/90 leading-relaxed">
-                        {fix.solution}
-                      </p>
+                      <span className="text-xs font-bold text-red-400 uppercase tracking-wider block mb-1">The Roast</span>
+                      <p className="text-red-200 font-medium text-lg">"{fix.roast}"</p>
+                    </div>
+                  </div>
+
+                  {/* Layer 3: The Fix (Helpful) */}
+                  <div className="bg-green-950/10 p-5 flex gap-4">
+                    <div className="bg-green-500/10 text-green-500 p-2 rounded-lg shrink-0 h-fit">
+                      <CheckCircle2 size={20} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-green-400 uppercase tracking-wider block mb-1">The Fix</span>
+                      <p className="text-green-100/90 leading-relaxed">{fix.fix}</p>
                     </div>
                   </div>
 
@@ -180,8 +174,7 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Share Button */}
-             <div className="flex justify-center pt-8 pb-12">
+            <div className="flex justify-center pt-8 pb-12">
                <a 
                  href={`https://twitter.com/intent/tweet?text=I%20just%20got%20roasted%20by%20AI.%20My%20site%20scored%20${result.score}/100.%20%F0%9F%92%80%20"${result.roast}"&url=https://roastmylandingpage.com`}
                  target="_blank"

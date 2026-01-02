@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     console.log(`Processing Request - Mode: ${mode}`);
 
-    // --- Jina AI Scraping (Standard) ---
+    // --- Jina AI Scraping ---
     if (mode === "url" && url) {
       try {
         const response = await fetch(`https://r.jina.ai/${url}`, {
@@ -40,46 +40,38 @@ export async function POST(req: Request) {
       );
     }
 
-    // --- THE "COMEDY ROAST" PROMPT ---
+    // --- THE 3-LAYER ROAST PROMPT ---
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are a savage, cynical Silicon Valley VC who is roasting this startup on a live comedy show. 
+          content: `You are a savage Silicon Valley VC roasting a landing page.
           
-          Your persona is "Gordon Ramsay meets Steve Jobs." You are allergic to corporate jargon.
+          Your goal is to be Mean but Helpful.
           
-          RULES FOR THE ROAST:
-          1. Be MEAN but FUNNY. Use metaphors. (e.g., "This reads like it was written by a depressed HR bot.")
-          2. The "Roast" field must be a punchline.
-          3. The "Fixes" must be TACTICAL. 
-             - The 'problem' field should be the insult.
-             - The 'solution' field must be the actual helpful advice.
-          
+          You must identify 3 specific parts of the text that are bad.
+          For each part, you must provide:
+          1. QUOTE: The exact original text.
+          2. ROAST: A funny, metaphor-heavy insult about why it sucks.
+          3. FIX: A serious, specific rewrite using simple words.
+
           Return JSON format:
           { 
-            "score": number (0-50 for bad sites, be stingy), 
-            "roast": "A 1-2 sentence devastatingly funny summary using a metaphor.", 
+            "score": number (0-60, be mean), 
+            "roast": "A 1-sentence overall summary roast.", 
             "fixes": [
               { 
-                "problem": "Quote the bad text and insult it (e.g. 'Empower your dreams? This sounds like a fortune cookie.')", 
-                "solution": "The actual fix (e.g. 'Change to: We help you save 50% on tax.')" 
-              },
-              { 
-                "problem": "...", 
-                "solution": "..." 
-              },
-              { 
-                "problem": "...", 
-                "solution": "..." 
+                "quote": "Original text (e.g. 'Unlock your potential')", 
+                "roast": "The funny insult (e.g. 'This phrase is so empty it echoes.')", 
+                "fix": "The tactical rewrite (e.g. 'Change to: Increase sales by 20%.')" 
               }
             ] 
           }`,
         },
         {
           role: "user",
-          content: `Roast this landing page copy. Make it hurt: \n\n${text}`,
+          content: `Roast this landing page text: \n\n${text}`,
         },
       ],
       response_format: { type: "json_object" },
