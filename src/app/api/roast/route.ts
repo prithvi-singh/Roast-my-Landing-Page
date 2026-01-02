@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import * as cheerio from "cheerio";
 
-export const dynamic = 'force-dynamic'; // CRITICAL: Forces Vercel to not cache this route
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
@@ -12,66 +11,53 @@ export async function POST(req: Request) {
 
     const { url, text, mode } = await req.json();
     let contentToRoast = text;
-    let scrapeStatus = "skipped"; // For debugging
 
-    // Scrape if URL mode
+    // --- MAGICAL FIX: Use Jina.ai for scraping ---
     if (mode === "url" && url) {
       try {
-        console.log(`Attempting to scrape: ${url}`);
+        console.log(`Asking Jina to scrape: ${url}`);
         
-        const response = await fetch(url, {
+        // We fetch from r.jina.ai which turns any site into clean text
+        const response = await fetch(`https://r.jina.ai/${url}`, {
           method: 'GET',
-          cache: 'no-store', // CRITICAL: Disable caching
           headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-          },
+             // Jina requires no special headers, but good to be polite
+             "Accept": "text/plain" 
+          }
         });
 
-        scrapeStatus = `HTTP ${response.status}`;
-        
         if (!response.ok) {
-           throw new Error(`Failed to fetch. Status: ${response.status}`);
+           throw new Error(`Jina failed with status: ${response.status}`);
         }
 
-        const html = await response.text();
-        const $ = cheerio.load(html);
+        // Jina returns pure text/markdown. No Cheerio needed!
+        const rawText = await response.text();
+        
+        // Clean it up slightly (remove links and images to save tokens)
+        contentToRoast = rawText
+            .replace(/!\[.*?\]\(.*?\)/g, "") // remove images
+            .replace(/\[.*?\]\(.*?\)/g, "") // remove links
+            .slice(0, 4000); // Limit to 4000 chars
 
-        // Remove scripts, styles, and navbars to clean up the text
-        $('script').remove();
-        $('style').remove();
-        $('nav').remove();
-        $('footer').remove();
+        console.log(`Jina returned ${contentToRoast.length} chars`);
 
-        // Extract meaningful text
-        contentToRoast = $("body")
-          .text()
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 3000);
-          
-        console.log(`Scraped length: ${contentToRoast.length} chars`);
-
-      } catch (error: any) {
-        console.error("Scraping error:", error);
+      } catch (error) {
+        console.error("Jina Scraping error:", error);
         return NextResponse.json(
-          { error: `Scraping failed (${scrapeStatus}). Website might be blocking Vercel IPs. Please use Paste mode.` },
+          { error: "Could not read site. Please use the 'Paste Copy' tab." },
           { status: 400 }
         );
       }
     }
+    // ---------------------------------------------
 
-    // Lowered limit to 20 chars so 'example.com' passes
-    if (!contentToRoast || contentToRoast.length < 20) {
+    if (!contentToRoast || contentToRoast.length < 50) {
       return NextResponse.json(
-        { error: "Content too short or blocked. Try pasting the text manually." },
+        { error: "Content too short. Try pasting the text manually." },
         { status: 400 }
       );
     }
 
-    // Call OpenAI
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
