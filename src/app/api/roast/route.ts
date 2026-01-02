@@ -2,49 +2,71 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import * as cheerio from "cheerio";
 
-// 1. We do NOT initialize OpenAI here anymore.
-// We just import it.
+export const dynamic = 'force-dynamic'; // CRITICAL: Forces Vercel to not cache this route
 
 export async function POST(req: Request) {
   try {
-    // 2. Initialize it INSIDE the function (Lazy loading)
-    // This prevents the "Missing Credentials" error during build
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
     const { url, text, mode } = await req.json();
     let contentToRoast = text;
+    let scrapeStatus = "skipped"; // For debugging
 
     // Scrape if URL mode
     if (mode === "url" && url) {
       try {
+        console.log(`Attempting to scrape: ${url}`);
+        
         const response = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store', // CRITICAL: Disable caching
           headers: {
             "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
           },
         });
+
+        scrapeStatus = `HTTP ${response.status}`;
+        
+        if (!response.ok) {
+           throw new Error(`Failed to fetch. Status: ${response.status}`);
+        }
+
         const html = await response.text();
         const $ = cheerio.load(html);
 
-        // Extract meaningful text (Headings and paragraphs)
-        contentToRoast = $("h1, h2, h3, p")
-          .map((_, el) => $(el).text())
-          .get()
-          .join(" ")
-          .slice(0, 3000); // Limit to 3000 chars to save tokens
-      } catch (error) {
+        // Remove scripts, styles, and navbars to clean up the text
+        $('script').remove();
+        $('style').remove();
+        $('nav').remove();
+        $('footer').remove();
+
+        // Extract meaningful text
+        contentToRoast = $("body")
+          .text()
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 3000);
+          
+        console.log(`Scraped length: ${contentToRoast.length} chars`);
+
+      } catch (error: any) {
+        console.error("Scraping error:", error);
         return NextResponse.json(
-          { error: "Failed to scrape site. Try pasting text." },
+          { error: `Scraping failed (${scrapeStatus}). Website might be blocking Vercel IPs. Please use Paste mode.` },
           { status: 400 }
         );
       }
     }
 
-    if (!contentToRoast || contentToRoast.length < 50) {
+    // Lowered limit to 20 chars so 'example.com' passes
+    if (!contentToRoast || contentToRoast.length < 20) {
       return NextResponse.json(
-        { error: "Not enough content found to roast. Paste text manually." },
+        { error: "Content too short or blocked. Try pasting the text manually." },
         { status: 400 }
       );
     }
@@ -71,9 +93,9 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error(error);
+    console.error("Server error:", error);
     return NextResponse.json(
-      { error: "Something went wrong during the roast." },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
