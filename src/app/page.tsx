@@ -1,42 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { Link2, FileText, Loader2, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import ReportCard from "@/components/ReportCard";
-
-type RoastResult = {
-  score: number;
-  roast: string;
-  fixes: Array<{ problem: string; solution: string }>;
-};
+import { Copy, Link, AlertCircle, CheckCircle2, Loader2, Send } from "lucide-react";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"url" | "text">("url");
-  const [inputValue, setInputValue] = useState("");
+  const [mode, setMode] = useState<"url" | "paste">("url");
+  const [url, setUrl] = useState("https://");
+  const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<RoastResult | null>(null);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState("");
 
   const handleRoast = async () => {
-    if (!inputValue.trim()) return;
-
     setLoading(true);
-    setError(null);
+    setError("");
     setResult(null);
 
     try {
-      const res = await fetch("/api/roast", {
+      const response = await fetch("/api/roast", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ type: activeTab, content: inputValue }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode, // "url" or "paste"
+          url: mode === "url" ? url : "", 
+          text: mode === "paste" ? text : "", // Explicitly sends text only in paste mode
+        }),
       });
 
-      const data = await res.json();
+      const data = await response.json();
 
-      if (!res.ok) {
+      if (!response.ok) {
         throw new Error(data.error || "Something went wrong");
       }
 
@@ -49,103 +42,133 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-indigo-500/30 font-mono">
-      <div className="max-w-4xl mx-auto px-4 py-20">
+    <main className="min-h-screen bg-black text-gray-200 font-mono p-4 flex flex-col items-center justify-center">
+      <div className="max-w-2xl w-full space-y-8">
         
         {/* Header */}
-        <div className="text-center mb-12 space-y-4">
-          <div className="inline-block px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs tracking-widest font-bold uppercase mb-4">
-            Beta v1.0
+        <div className="text-center space-y-4">
+          <div className="inline-block bg-indigo-900/30 text-indigo-400 px-3 py-1 rounded-full text-xs border border-indigo-500/30">
+            BETA V1.0
           </div>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-zinc-500">
+          <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-white">
             ROAST MY LANDING PAGE
           </h1>
-          <p className="text-zinc-500 max-w-lg mx-auto">
-            Get a brutal, honest critique from a cynical VC AI. 
+          <p className="text-gray-500">
+            Get a brutal, honest critique from a cynical VC AI. <br />
             Prepare to cry.
           </p>
         </div>
 
         {/* Input Card */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-2 max-w-2xl mx-auto shadow-xl">
+        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-2 md:p-6 backdrop-blur-sm">
+          
           {/* Tabs */}
-          <div className="grid grid-cols-2 gap-1 mb-2 bg-zinc-950/50 p-1 rounded-lg">
+          <div className="grid grid-cols-2 gap-2 mb-6 bg-black/40 p-1 rounded-lg">
             <button
-              onClick={() => { setActiveTab("url"); setError(null); }}
-              className={cn(
-                "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-md transition-all",
-                activeTab === "url" 
-                  ? "bg-zinc-800 text-white shadow-sm" 
-                  : "text-zinc-500 hover:text-zinc-300"
-              )}
+              onClick={() => setMode("url")}
+              className={`flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-md transition-all ${
+                mode === "url"
+                  ? "bg-gray-800 text-white shadow-lg"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
             >
-              <Link2 size={16} /> URL Scraper
+              <Link size={16} /> URL Scraper
             </button>
             <button
-              onClick={() => { setActiveTab("text"); setError(null); }}
-              className={cn(
-                "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-md transition-all",
-                activeTab === "text" 
-                  ? "bg-zinc-800 text-white shadow-sm" 
-                  : "text-zinc-500 hover:text-zinc-300"
-              )}
+              onClick={() => setMode("paste")}
+              className={`flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-md transition-all ${
+                mode === "paste"
+                  ? "bg-gray-800 text-white shadow-lg"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
             >
-              <FileText size={16} /> Paste Copy
+              <Copy size={16} /> Paste Copy
             </button>
           </div>
 
           {/* Inputs */}
-          <div className="p-4 space-y-4">
-            {activeTab === "url" ? (
+          <div className="space-y-4">
+            {mode === "url" ? (
               <input
                 type="url"
-                placeholder="example.com"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://your-startup.com"
+                className="w-full bg-black border border-gray-800 rounded-lg px-4 py-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
               />
             ) : (
               <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Paste your H1, H2, and hero text here..."
                 rows={6}
-                placeholder="Paste your H1, H2, and subheader text here..."
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                className="w-full bg-black border border-gray-800 rounded-lg px-4 py-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
               />
             )}
 
             <button
               onClick={handleRoast}
-              disabled={loading || !inputValue}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
+              disabled={loading || (mode === "url" ? !url : !text)}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)]"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} /> Analyzing...
-                </>
-              ) : (
-                <>
-                  Roast Me <ArrowRight size={18} />
-                </>
-              )}
+              {loading ? <Loader2 className="animate-spin" /> : <Send size={18} />}
+              {loading ? "Roasting..." : "Roast Me →"}
             </button>
           </div>
         </div>
 
-        {/* Error Message */}
+        {/* Error Display */}
         {error && (
-          <div className="max-w-2xl mx-auto mt-4 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm text-center">
-            {error}
+          <div className="bg-red-900/20 border border-red-900/50 text-red-400 p-4 rounded-lg flex items-center gap-3 text-sm">
+            <AlertCircle size={18} /> {error}
           </div>
         )}
 
-        {/* Results */}
+        {/* Result Card */}
         {result && (
-          <ReportCard 
-            score={result.score} 
-            roast={result.roast} 
-            fixes={result.fixes} 
-          />
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+            
+            {/* Score Section */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center relative overflow-hidden">
+              <div className={`absolute top-0 left-0 w-full h-1 ${result.score > 50 ? 'bg-green-500' : 'bg-red-500'}`} />
+              <div className="text-gray-500 text-sm font-bold uppercase tracking-widest mb-2">Verdict Score</div>
+              <div className={`text-7xl font-black ${result.score > 50 ? 'text-green-500' : 'text-red-500'}`}>
+                {result.score}/100
+              </div>
+            </div>
+
+            {/* The Roast */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 md:p-8">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <span className="text-2xl">🔥</span> The Roast
+              </h3>
+              <p className="text-lg text-gray-300 leading-relaxed border-l-4 border-indigo-500 pl-4">
+                "{result.roast}"
+              </p>
+            </div>
+
+            {/* The Fixes */}
+            <div className="grid gap-4">
+              {result.fixes.map((fix: any, i: number) => (
+                <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-indigo-500/30 transition-colors">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-indigo-900/30 text-indigo-400 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mt-1">
+                      {i + 1}
+                    </div>
+                    <div className="space-y-3 w-full">
+                      <div className="bg-red-950/30 text-red-300/80 px-3 py-2 rounded-md text-sm font-mono border border-red-900/30 strike-through line-through opacity-70">
+                        {fix.problem}
+                      </div>
+                      <div className="flex items-start gap-2 text-green-400 text-sm font-medium bg-green-900/10 p-2 rounded">
+                        <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+                        {fix.solution}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </main>

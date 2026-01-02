@@ -9,51 +9,42 @@ export async function POST(req: Request) {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const { url, text, mode } = await req.json();
-    let contentToRoast = text;
+    const body = await req.json();
+    const { url, mode } = body;
+    let { text } = body; // Grab text from body
+
+    console.log(`Processing Request - Mode: ${mode}`); // Debug Log
 
     // --- MAGICAL FIX: Use Jina.ai for scraping ---
     if (mode === "url" && url) {
       try {
         console.log(`Asking Jina to scrape: ${url}`);
-        
-        // We fetch from r.jina.ai which turns any site into clean text
         const response = await fetch(`https://r.jina.ai/${url}`, {
           method: 'GET',
-          headers: {
-             // Jina requires no special headers, but good to be polite
-             "Accept": "text/plain" 
-          }
+          headers: { "Accept": "text/plain" }
         });
 
-        if (!response.ok) {
-           throw new Error(`Jina failed with status: ${response.status}`);
-        }
-
-        // Jina returns pure text/markdown. No Cheerio needed!
-        const rawText = await response.text();
+        if (!response.ok) throw new Error(`Jina status: ${response.status}`);
         
-        // Clean it up slightly (remove links and images to save tokens)
-        contentToRoast = rawText
-            .replace(/!\[.*?\]\(.*?\)/g, "") // remove images
-            .replace(/\[.*?\]\(.*?\)/g, "") // remove links
-            .slice(0, 4000); // Limit to 4000 chars
-
-        console.log(`Jina returned ${contentToRoast.length} chars`);
-
+        const rawText = await response.text();
+        text = rawText.replace(/!\[.*?\]\(.*?\)/g, "").replace(/\[.*?\]\(.*?\)/g, "").slice(0, 4000);
+        console.log(`Scraped Text Length: ${text.length}`);
+      
       } catch (error) {
-        console.error("Jina Scraping error:", error);
+        console.error("Jina Error:", error);
         return NextResponse.json(
-          { error: "Could not read site. Please use the 'Paste Copy' tab." },
+          { error: "Could not scrape site. Please use Paste Copy tab." },
           { status: 400 }
         );
       }
     }
-    // ---------------------------------------------
 
-    if (!contentToRoast || contentToRoast.length < 50) {
+    // FINAL CHECK
+    console.log(`Final Text to Roast Length: ${text ? text.length : 0}`);
+
+    if (!text || text.length < 50) {
       return NextResponse.json(
-        { error: "Content too short. Try pasting the text manually." },
+        { error: "Content too short (under 50 chars) or blocked. Try pasting more text." },
         { status: 400 }
       );
     }
@@ -69,7 +60,7 @@ export async function POST(req: Request) {
         },
         {
           role: "user",
-          content: `Roast this content: ${contentToRoast}`,
+          content: `Roast this content: ${text}`,
         },
       ],
       response_format: { type: "json_object" },
@@ -78,10 +69,10 @@ export async function POST(req: Request) {
     const result = JSON.parse(completion.choices[0].message.content || "{}");
     return NextResponse.json(result);
 
-  } catch (error) {
-    console.error("Server error:", error);
+  } catch (error: any) {
+    console.error("Server Error:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: error.message || "Internal Server Error" },
       { status: 500 }
     );
   }
